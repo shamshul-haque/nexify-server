@@ -31,6 +31,7 @@ const client = new MongoClient(uri, {
 
 // db collections
 const userCollection = client.db("nexifyDB").collection("users");
+const productCollection = client.db("nexifyDB").collection("products");
 
 // middleware to verify token
 const verifyToken = (req, res, next) => {
@@ -161,6 +162,14 @@ async function run() {
         const result = await userCollection.updateOne(filter, updatedDoc);
         res.send(result);
       }
+    });
+
+    // get all products based on owner
+    app.get("/api/v1/user/products", verifyToken, async (req, res) => {
+      const owner = req.query.owner;
+      const query = { owner: owner };
+      const result = await productCollection.find(query).toArray();
+      res.send(result);
     });
 
     // confirm server connection
