@@ -57,6 +57,18 @@ async function run() {
         .send({ success: true });
     });
 
+    // add new users to db when create account
+    app.post("/api/v1/users", async (req, res) => {
+      const user = req.body;
+      const query = { email: user.email };
+      const isExistUser = await userCollection.findOne(query);
+      if (isExistUser) {
+        return res.send({ message: "User already exits", insertedId: null });
+      }
+      const result = await userCollection.insertOne(user);
+      res.send(result);
+    });
+
     // confirm server connection
     await client.db("admin").command({ ping: 1 });
     console.log(
