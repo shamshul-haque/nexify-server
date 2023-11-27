@@ -4,10 +4,11 @@ require("dotenv").config();
 const { MongoClient, ServerApiVersion, ObjectId } = require("mongodb");
 const cookieParser = require("cookie-parser");
 const jwt = require("jsonwebtoken");
-const app = express();
-const port = process.env.PORT || 5000;
 require("./dbConnect");
 const ProductModel = require("./model/Product");
+const stripe = require("stripe")(process.env.Stripe_Secret_Key);
+const app = express();
+const port = process.env.PORT || 5000;
 
 // parsers
 app.use(
@@ -34,6 +35,7 @@ const client = new MongoClient(uri, {
 // db collections
 const userCollection = client.db("nexifyDB").collection("users");
 const productCollection = client.db("nexifyDB").collection("products");
+const paymentCollection = client.db("nexifyDB").collection("payments");
 
 // middleware to verify token
 const verifyToken = (req, res, next) => {
@@ -179,6 +181,44 @@ async function run() {
       const id = req.params.id;
       const query = { _id: new ObjectId(id) };
       const result = await productCollection.deleteOne(query);
+      res.send(result);
+    });
+
+    // make payment intent
+    app.post("/api/v1/users/payment-intent", verifyToken, async (req, res) => {
+      const { price } = req.body;
+      const amount = parseInt(price * 100);
+      const paymentIntent = await stripe.paymentIntents.create({
+        amount: amount,
+        currency: "usd",
+        payment_method_types: ["card"],
+      });
+      res.send({
+        clientSecret: paymentIntent.client_secret,
+      });
+    });
+
+    // add payment information
+    app.post("/api/v1/users/payment-history", verifyToken, async (req, res) => {
+      const payment = req.body;
+      const user = req.body;
+      const query = { email: user.email };
+      const isExistUser = await paymentCollection.findOne(query);
+      if (isExistUser) {
+        return res.send({ message: "User already exits", insertedId: null });
+      }
+      const result = await paymentCollection.insertOne(payment);
+      res.send(result);
+    });
+
+    app.get("/api/v1/users/payment-history", verifyToken, async (req, res) => {
+      const queryEmail = req.query.email;
+      const tokenEmail = req.user.email;
+      const query = { email: queryEmail };
+      if (queryEmail !== tokenEmail) {
+        return res.status(403).send({ message: "forbidden access" });
+      }
+      const result = await paymentCollection.find(query).toArray();
       res.send(result);
     });
 
