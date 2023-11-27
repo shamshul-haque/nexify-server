@@ -117,6 +117,34 @@ async function run() {
       res.send(result);
     });
 
+    // checking specific user is normal user or moderator or admin
+    app.get("/api/v1/users/admin", verifyToken, async (req, res) => {
+      const queryEmail = req.query.email;
+      const tokenEmail = req.user.email;
+
+      if (queryEmail !== tokenEmail) {
+        return res.status(403).send({ message: "Forbidden Access" });
+      }
+
+      let query = {};
+      if (queryEmail) {
+        query.email = queryEmail;
+      }
+      const user = await userCollection.findOne(query);
+
+      let admin = false;
+      if (user) {
+        admin = user.role == "admin";
+      }
+
+      let moderator = false;
+      if (user) {
+        moderator = user.role == "moderator";
+      }
+
+      res.send({ admin, moderator });
+    });
+
     // confirm server connection
     await client.db("admin").command({ ping: 1 });
     console.log(
