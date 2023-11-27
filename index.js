@@ -4,8 +4,8 @@ require("dotenv").config();
 const { MongoClient, ServerApiVersion, ObjectId } = require("mongodb");
 const cookieParser = require("cookie-parser");
 const jwt = require("jsonwebtoken");
-require("./dbConnect");
-const ProductModel = require("./model/Product");
+// require("./dbConnect");
+// const ProductModel = require("./model/Product");
 const stripe = require("stripe")(process.env.Stripe_Secret_Key);
 const app = express();
 const port = process.env.PORT || 5000;
@@ -168,11 +168,19 @@ async function run() {
       }
     });
 
+    // add new product by product owner
+    app.post("/api/v1/menus", verifyToken, async (req, res) => {
+      const item = req.body;
+      const result = await productCollection.insertOne(item);
+      res.send(result);
+    });
+
     // get all products based on owner
     app.get("/api/v1/user/products", verifyToken, async (req, res) => {
       const owner = req.query.owner;
       const query = { owner: owner };
-      const result = await ProductModel.find(query);
+      //   const result = await ProductModel.find(query);
+      const result = await productCollection.find(query).toArray();
       res.send(result);
     });
 
