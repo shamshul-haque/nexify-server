@@ -29,6 +29,48 @@ const client = new MongoClient(uri, {
   },
 });
 
+// db collections
+const userCollection = client.db("nexifyDB").collection("users");
+
+// middleware to verify token
+const verifyToken = (req, res, next) => {
+  const { token } = req.cookies;
+
+  if (!token) {
+    return res.status(401).send({ message: "Unauthorized Access" });
+  }
+
+  jwt.verify(token, process.env.ACCESS_TOKEN, (err, decode) => {
+    if (err) {
+      return res.status(401).send({ message: "Unauthorized Access" });
+    }
+    req.user = decode;
+    next();
+  });
+};
+
+const verifyAdmin = async (req, res, next) => {
+  const decodedUser = req.user;
+  const query = { email: decodedUser.email };
+  const user = await userCollection.findOne(query);
+  const isAdmin = user.role === "admin";
+  if (!isAdmin) {
+    return res.status(403).send({ message: "Forbidden Access" });
+  }
+  next();
+};
+
+const verifyModerator = async (req, res, next) => {
+  const decodedUser = req.user;
+  const query = { email: decodedUser.email };
+  const user = await userCollection.findOne(query);
+  const isModerator = user.role === "moderator";
+  if (!isModerator) {
+    return res.status(403).send({ message: "Forbidden Access" });
+  }
+  next();
+};
+
 async function run() {
   try {
     // await client.connect();
@@ -66,6 +108,12 @@ async function run() {
         return res.send({ message: "User already exits", insertedId: null });
       }
       const result = await userCollection.insertOne(user);
+      res.send(result);
+    });
+
+    // get all user by verified admin
+    app.get("/api/v1/users", verifyToken, verifyAdmin, async (req, res) => {
+      const result = await userCollection.find().toArray();
       res.send(result);
     });
 
