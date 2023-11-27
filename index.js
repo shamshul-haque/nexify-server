@@ -33,7 +33,7 @@ async function run() {
   try {
     // await client.connect();
 
-    // create access token of an user
+    // create token when user login
     app.post("/api/v1/users/access-token", async (req, res) => {
       const user = req.body;
       const token = jwt.sign(user, process.env.ACCESS_TOKEN, {
@@ -44,6 +44,15 @@ async function run() {
           httpOnly: true,
           secure: true,
           sameSite: "none",
+        })
+        .send({ success: true });
+    });
+
+    // clear token when user logged out
+    app.post("/api/v1/users/logout", async (req, res) => {
+      res
+        .clearCookie("token", {
+          maxAge: 0,
         })
         .send({ success: true });
     });
