@@ -145,6 +145,24 @@ async function run() {
       res.send({ admin, moderator });
     });
 
+    // make an user admin or moderator by existing verified admin
+    app.patch("/api/v1/users/admin/:id", async (req, res) => {
+      const id = req.params.id;
+      const filter = { _id: new ObjectId(id) };
+      if (
+        req.body.role &&
+        (req.body.role === "admin" || req.body.role === "moderator")
+      ) {
+        const updatedDoc = {
+          $set: {
+            role: req.body.role,
+          },
+        };
+        const result = await userCollection.updateOne(filter, updatedDoc);
+        res.send(result);
+      }
+    });
+
     // confirm server connection
     await client.db("admin").command({ ping: 1 });
     console.log(
