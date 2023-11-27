@@ -6,6 +6,8 @@ const cookieParser = require("cookie-parser");
 const jwt = require("jsonwebtoken");
 const app = express();
 const port = process.env.PORT || 5000;
+require("./dbConnect");
+const ProductModel = require("./model/Product");
 
 // parsers
 app.use(
@@ -38,12 +40,12 @@ const verifyToken = (req, res, next) => {
   const { token } = req.cookies;
 
   if (!token) {
-    return res.status(401).send({ message: "Unauthorized Access" });
+    return res.status(401).send({ message: "Unauthorized Access1" });
   }
 
   jwt.verify(token, process.env.ACCESS_TOKEN, (err, decode) => {
     if (err) {
-      return res.status(401).send({ message: "Unauthorized Access" });
+      return res.status(401).send({ message: "Unauthorized Access2" });
     }
     req.user = decode;
     next();
@@ -168,7 +170,15 @@ async function run() {
     app.get("/api/v1/user/products", verifyToken, async (req, res) => {
       const owner = req.query.owner;
       const query = { owner: owner };
-      const result = await productCollection.find(query).toArray();
+      const result = await ProductModel.find(query);
+      res.send(result);
+    });
+
+    // delete specific product by owner
+    app.delete("/api/v1/user/product/:id", verifyToken, async (req, res) => {
+      const id = req.params.id;
+      const query = { _id: new ObjectId(id) };
+      const result = await productCollection.deleteOne(query);
       res.send(result);
     });
 
