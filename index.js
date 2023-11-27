@@ -169,7 +169,7 @@ async function run() {
     });
 
     // add new product by product owner
-    app.post("/api/v1/menus", verifyToken, async (req, res) => {
+    app.post("/api/v1/user/products", verifyToken, async (req, res) => {
       const item = req.body;
       const result = await productCollection.insertOne(item);
       res.send(result);
@@ -181,6 +181,33 @@ async function run() {
       const query = { owner: owner };
       //   const result = await ProductModel.find(query);
       const result = await productCollection.find(query).toArray();
+      res.send(result);
+    });
+
+    // get specific product by id
+    app.get("/api/v1/user/products/:id", verifyToken, async (req, res) => {
+      const id = req.params.id;
+      const query = { _id: new ObjectId(id) };
+      const result = await productCollection.findOne(query);
+      res.send(result);
+    });
+
+    // update specific product by owner
+    app.patch("/api/v1/user/products/:id", verifyToken, async (req, res) => {
+      const id = req.params.id;
+      console.log(id);
+      const item = req.body;
+      const filter = { _id: new ObjectId(id) };
+      const updatedDoc = {
+        $set: {
+          product_name: item.product_name,
+          details: item.details,
+          image: item.image,
+          tags: item.tags,
+          timestamp: item.timestamp,
+        },
+      };
+      const result = await productCollection.updateOne(filter, updatedDoc);
       res.send(result);
     });
 
