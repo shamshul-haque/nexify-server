@@ -33,6 +33,21 @@ async function run() {
   try {
     // await client.connect();
 
+    // create access token of an user
+    app.post("/api/v1/users/access-token", async (req, res) => {
+      const user = req.body;
+      const token = jwt.sign(user, process.env.ACCESS_TOKEN, {
+        expiresIn: "3hr",
+      });
+      res
+        .cookie("token", token, {
+          httpOnly: true,
+          secure: true,
+          sameSite: "none",
+        })
+        .send({ success: true });
+    });
+
     // confirm server connection
     await client.db("admin").command({ ping: 1 });
     console.log(
