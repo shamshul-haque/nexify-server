@@ -233,6 +233,46 @@ async function run() {
       });
     });
 
+    // get all products by moderator
+    app.get(
+      "/api/v1/moderator/products",
+      verifyToken,
+      verifyModerator,
+      async (req, res) => {
+        const result = await productCollection.find().toArray();
+        res.send(result);
+      }
+    );
+
+    // make specific product featured by moderator
+    app.patch(
+      "/api/v1/moderator/products/:id",
+      verifyToken,
+      verifyModerator,
+      async (req, res) => {
+        const id = req.params.id;
+        const filter = { _id: new ObjectId(id) };
+        if (req.body.status === "accepted" || req.body.status === "rejected") {
+          const updatedDoc = {
+            $set: {
+              status: req.body.status,
+            },
+          };
+          const result = await productCollection.updateOne(filter, updatedDoc);
+          res.send(result);
+        }
+        if (req.body.featured) {
+          const updatedDoc = {
+            $set: {
+              featured: true,
+            },
+          };
+          const result = await productCollection.updateOne(filter, updatedDoc);
+          res.send(result);
+        }
+      }
+    );
+
     // add payment information
     app.post("/api/v1/users/payment-history", verifyToken, async (req, res) => {
       const payment = req.body;
