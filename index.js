@@ -35,7 +35,7 @@ const client = new MongoClient(uri, {
 // db collections
 const userCollection = client.db("nexifyDB").collection("users");
 const productCollection = client.db("nexifyDB").collection("products");
-const reportCollection = client.db("nexifyDB").collection("reports");
+const reviewCollection = client.db("nexifyDB").collection("reviews");
 const paymentCollection = client.db("nexifyDB").collection("payments");
 
 // middleware to verify token
@@ -288,12 +288,12 @@ async function run() {
       }
     );
 
-    // // post report by normal user
-    // app.post("/api/v1/report", verifyToken, async (req, res) => {
-    //   const item = req.body;
-    //   const result = await reportCollection.insertOne(item);
-    //   res.send(result);
-    // });
+    // post report by normal user
+    app.post("/api/v1/user/reviews", verifyToken, async (req, res) => {
+      const item = req.body;
+      const result = await reviewCollection.insertOne(item);
+      res.send(result);
+    });
 
     // make payment intent
     app.post("/api/v1/users/payment-intent", verifyToken, async (req, res) => {
