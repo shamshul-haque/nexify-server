@@ -274,6 +274,19 @@ async function run() {
       res.send(result);
     });
 
+    // delete specific reported product by moderator
+    app.delete(
+      "/api/v1/moderator/product/:id",
+      verifyToken,
+      verifyModerator,
+      async (req, res) => {
+        const id = req.params.id;
+        const query = { _id: new ObjectId(id) };
+        const result = await productCollection.deleteOne(query);
+        res.send(result);
+      }
+    );
+
     // get all products by moderator
     app.get(
       "/api/v1/moderator/products",
@@ -287,6 +300,13 @@ async function run() {
         res.send(result);
       }
     );
+
+    // get all products by moderator based on report field
+    app.get("/api/v1/moderator/products/report", async (req, res) => {
+      const query = { report: { $exists: true } };
+      const result = await productCollection.find(query).toArray();
+      res.send(result);
+    });
 
     // post report by normal user
     app.post("/api/v1/user/reviews", verifyToken, async (req, res) => {
