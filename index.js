@@ -35,6 +35,7 @@ const client = new MongoClient(uri, {
 // db collections
 const userCollection = client.db("nexifyDB").collection("users");
 const productCollection = client.db("nexifyDB").collection("products");
+const reportCollection = client.db("nexifyDB").collection("reports");
 const paymentCollection = client.db("nexifyDB").collection("payments");
 
 // middleware to verify token
@@ -192,10 +193,34 @@ async function run() {
       res.send(result);
     });
 
-    // update specific product by owner
+    // update specific product by user based on giving report or vote
     app.patch("/api/v1/user/products/:id", verifyToken, async (req, res) => {
       const id = req.params.id;
-      console.log(id);
+      const item = req.body;
+      const filter = { _id: new ObjectId(id) };
+      if (item.report) {
+        const updatedDoc = {
+          $set: {
+            report: item.report,
+          },
+        };
+        const result = await productCollection.updateOne(filter, updatedDoc);
+        res.send(result);
+      }
+      if (item.vote_count) {
+        const updatedDoc = {
+          $set: {
+            vote_count: item.vote_count,
+          },
+        };
+        const result = await productCollection.updateOne(filter, updatedDoc);
+        res.send(result);
+      }
+    });
+
+    // update specific product by owner
+    app.patch("/api/v1/owner/products/:id", verifyToken, async (req, res) => {
+      const id = req.params.id;
       const item = req.body;
       const filter = { _id: new ObjectId(id) };
       const updatedDoc = {
@@ -211,30 +236,7 @@ async function run() {
       res.send(result);
     });
 
-    // delete specific product by owner
-    app.delete("/api/v1/user/product/:id", verifyToken, async (req, res) => {
-      const id = req.params.id;
-      const query = { _id: new ObjectId(id) };
-      const result = await productCollection.deleteOne(query);
-      res.send(result);
-    });
-
-    // get all products by moderator
-    app.get(
-      "/api/v1/moderator/products",
-      verifyToken,
-      verifyModerator,
-      async (req, res) => {
-        const result = await productCollection
-          .find()
-          .sort({ sort: -1 })
-          .toArray();
-        // const result = await productCollection.find().toArray();
-        res.send(result);
-      }
-    );
-
-    // make specific product featured by moderator
+    // make specific product featured, accepted or rejected by moderator
     app.patch(
       "/api/v1/moderator/products/:id",
       verifyToken,
@@ -263,6 +265,35 @@ async function run() {
         }
       }
     );
+
+    // delete specific product by owner
+    app.delete("/api/v1/user/product/:id", verifyToken, async (req, res) => {
+      const id = req.params.id;
+      const query = { _id: new ObjectId(id) };
+      const result = await productCollection.deleteOne(query);
+      res.send(result);
+    });
+
+    // get all products by moderator
+    app.get(
+      "/api/v1/moderator/products",
+      verifyToken,
+      verifyModerator,
+      async (req, res) => {
+        const result = await productCollection
+          .find()
+          .sort({ sort: -1 })
+          .toArray();
+        res.send(result);
+      }
+    );
+
+    // // post report by normal user
+    // app.post("/api/v1/report", verifyToken, async (req, res) => {
+    //   const item = req.body;
+    //   const result = await reportCollection.insertOne(item);
+    //   res.send(result);
+    // });
 
     // make payment intent
     app.post("/api/v1/users/payment-intent", verifyToken, async (req, res) => {
