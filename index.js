@@ -219,27 +219,17 @@ async function run() {
       res.send(result);
     });
 
-    // make payment intent
-    app.post("/api/v1/users/payment-intent", verifyToken, async (req, res) => {
-      const { price } = req.body;
-      const amount = parseInt(price * 100);
-      const paymentIntent = await stripe.paymentIntents.create({
-        amount: amount,
-        currency: "usd",
-        payment_method_types: ["card"],
-      });
-      res.send({
-        clientSecret: paymentIntent.client_secret,
-      });
-    });
-
     // get all products by moderator
     app.get(
       "/api/v1/moderator/products",
       verifyToken,
       verifyModerator,
       async (req, res) => {
-        const result = await productCollection.find().toArray();
+        const result = await productCollection
+          .find()
+          .sort({ sort: -1 })
+          .toArray();
+        // const result = await productCollection.find().toArray();
         res.send(result);
       }
     );
@@ -256,6 +246,7 @@ async function run() {
           const updatedDoc = {
             $set: {
               status: req.body.status,
+              sort: req.body.sort,
             },
           };
           const result = await productCollection.updateOne(filter, updatedDoc);
@@ -273,6 +264,20 @@ async function run() {
       }
     );
 
+    // make payment intent
+    app.post("/api/v1/users/payment-intent", verifyToken, async (req, res) => {
+      const { price } = req.body;
+      const amount = parseInt(price * 100);
+      const paymentIntent = await stripe.paymentIntents.create({
+        amount: amount,
+        currency: "usd",
+        payment_method_types: ["card"],
+      });
+      res.send({
+        clientSecret: paymentIntent.client_secret,
+      });
+    });
+
     // add payment information
     app.post("/api/v1/users/payment-history", verifyToken, async (req, res) => {
       const payment = req.body;
@@ -286,6 +291,7 @@ async function run() {
       res.send(result);
     });
 
+    // get payment history
     app.get("/api/v1/users/payment-history", verifyToken, async (req, res) => {
       const queryEmail = req.query.email;
       const tokenEmail = req.user.email;
