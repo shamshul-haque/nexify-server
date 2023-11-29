@@ -324,10 +324,29 @@ async function run() {
       res.send(result);
     });
 
+    // get all products based on vote count field
+    app.get("/api/v1/products/voted", async (req, res) => {
+      const query = { vote_count: { $exists: true } };
+      const result = await productCollection
+        .find(query)
+        .sort({ vote_count: -1 })
+        .limit(6)
+        .toArray();
+      res.send(result);
+    });
+
     // post report by normal user
     app.post("/api/v1/user/reviews", verifyToken, async (req, res) => {
       const item = req.body;
       const result = await reviewCollection.insertOne(item);
+      res.send(result);
+    });
+
+    // get all reviews based on productId
+    app.get("/api/v1/user/reviews/:id", verifyToken, async (req, res) => {
+      const currentProductId = req.params.id;
+      const query = { productId: currentProductId };
+      const result = await reviewCollection.find(query).toArray();
       res.send(result);
     });
 
