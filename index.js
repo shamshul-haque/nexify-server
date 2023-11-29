@@ -287,6 +287,21 @@ async function run() {
       }
     );
 
+    // get all products normally and based on tag search
+    app.get("/api/v1/products", async (req, res) => {
+      const { search } = req.query;
+      if (!search || search == "") {
+        const result = await productCollection.find().toArray();
+        return res.send(result);
+      } else {
+        const query = {
+          tags: { $in: [new RegExp(search, "i")] },
+        };
+        const result = await productCollection.find(query).limit(4).toArray();
+        return res.send(result);
+      }
+    });
+
     // get all products by moderator
     app.get(
       "/api/v1/moderator/products",
