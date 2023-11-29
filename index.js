@@ -302,9 +302,25 @@ async function run() {
     );
 
     // get all products by moderator based on report field
-    app.get("/api/v1/moderator/products/report", async (req, res) => {
-      const query = { report: { $exists: true } };
-      const result = await productCollection.find(query).toArray();
+    app.get(
+      "/api/v1/moderator/products/report",
+      verifyToken,
+      verifyModerator,
+      async (req, res) => {
+        const query = { report: { $exists: true } };
+        const result = await productCollection.find(query).toArray();
+        res.send(result);
+      }
+    );
+
+    // get all products based on featured field
+    app.get("/api/v1/products/featured", async (req, res) => {
+      const query = { featured: { $exists: true } };
+      const result = await productCollection
+        .find(query)
+        .sort({ timestamp: -1 })
+        .limit(4)
+        .toArray();
       res.send(result);
     });
 
