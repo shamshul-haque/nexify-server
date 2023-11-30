@@ -85,7 +85,7 @@ async function run() {
     app.post("/api/v1/users/access-token", async (req, res) => {
       const user = req.body;
       const token = jwt.sign(user, process.env.ACCESS_TOKEN, {
-        expiresIn: "3hr",
+        expiresIn: "1d",
       });
       res
         .cookie("token", token, {
@@ -167,6 +167,21 @@ async function run() {
         const result = await userCollection.updateOne(filter, updatedDoc);
         res.send(result);
       }
+    });
+
+    // get collection length for statistics
+    app.get("/api/v1/collectionLength", async (req, res) => {
+      const userCount = await userCollection.estimatedDocumentCount({});
+      const productCount = await productCollection.estimatedDocumentCount({});
+      const reviewCount = await reviewCollection.estimatedDocumentCount({});
+
+      const collectionLength = [
+        { category: "Users", length: userCount },
+        { category: "Products", length: productCount },
+        { category: "Reviews", length: reviewCount },
+      ];
+
+      res.send(collectionLength);
     });
 
     // add new product by product owner
@@ -290,14 +305,32 @@ async function run() {
     // get all products normally and based on tag search
     app.get("/api/v1/products", async (req, res) => {
       const { search } = req.query;
-      if (!search || search == "") {
-        const result = await productCollection.find().toArray();
-        return res.send(result);
+      if (!search || "") {
+        // const page = Number(req.query.page);
+        // const limit = Number(req.query.limit);
+        // const skip = (page - 1) * limit;
+        // const result = await productCollection
+        //   .find()
+        //   .skip(skip)
+        //   .limit(limit)
+        //   .sort({ timestamp: -1 })
+        //   .toArray();
+        // const total = await productCollection.estimatedDocumentCount();
+        // return res.send({ result, total });
+        const result = await productCollection
+          .find()
+          .sort({ timestamp: -1 })
+          .toArray();
+        res.send(result);
       } else {
         const query = {
           tags: { $in: [new RegExp(search, "i")] },
         };
-        const result = await productCollection.find(query).limit(4).toArray();
+        const result = await productCollection
+          .find(query)
+          .limit(4)
+          .sort({ timestamp: -1 })
+          .toArray();
         return res.send(result);
       }
     });
@@ -354,6 +387,12 @@ async function run() {
     app.post("/api/v1/user/reviews", verifyToken, async (req, res) => {
       const item = req.body;
       const result = await reviewCollection.insertOne(item);
+      res.send(result);
+    });
+
+    // get all reviews based on productId
+    app.get("/api/v1/user/reviews", verifyToken, async (req, res) => {
+      const result = await reviewCollection.find().toArray();
       res.send(result);
     });
 
