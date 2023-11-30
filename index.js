@@ -13,7 +13,11 @@ const port = process.env.PORT || 5000;
 // parsers
 app.use(
   cors({
-    origin: ["http://localhost:5173"],
+    origin: [
+      "http://localhost:5173",
+      "https://nexify-cadfe.web.app",
+      "https://nexify-cadfe.firebaseapp.com",
+    ],
     credentials: true,
   })
 );
@@ -313,28 +317,26 @@ async function run() {
         };
       }
       const totalData = await productCollection.estimatedDocumentCount();
-      const currentPage = Number(req.query.page) || 1;
-      const dataLimit = Number(req.query.limit) || 4;
-      const dataSkip = (currentPage - 1) * dataLimit;
-      const totalPages = Math.ceil(totalData / dataLimit);
-      const nextPage = currentPage < totalPages ? currentPage + 1 : currentPage;
-      const prevPage = currentPage > 1 ? currentPage - 1 : 1;
+      const page = Number(req.query.page) || 1;
+      const limit = Number(req.query.limit) || 4;
+      const skip = (page - 1) * limit;
+      const totalPages = Math.ceil(totalData / limit);
       if (search) {
         const result = await productCollection
           .find(query)
-          .skip(dataSkip)
+          .skip(skip)
           .limit(4)
           .sort({ timestamp: -1 })
           .toArray();
-        return res.send({ result, totalData, totalPages, nextPage, prevPage });
+        return res.send({ result, totalData, totalPages });
       } else {
         const result = await productCollection
           .find(query)
-          .skip(dataSkip)
-          .limit(dataLimit)
+          .skip(skip)
+          .limit(limit)
           .sort({ timestamp: -1 })
           .toArray();
-        return res.send({ result, totalData, totalPages, nextPage, prevPage });
+        return res.send({ result, totalData, totalPages });
       }
     });
 
@@ -458,10 +460,10 @@ async function run() {
     });
 
     // confirm server connection
-    await client.db("admin").command({ ping: 1 });
-    console.log(
-      "Pinged your deployment. You successfully connected to MongoDB!"
-    );
+    // await client.db("admin").command({ ping: 1 });
+    // console.log(
+    //   "Pinged your deployment. You successfully connected to MongoDB!"
+    // );
   } finally {
     // Ensures that the client will close when you finish/error
     // await client.close();
