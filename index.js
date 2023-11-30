@@ -314,30 +314,24 @@ async function run() {
       if (search) {
         query = {
           tags: { $in: [new RegExp(search, "i")] },
+          status: "accepted",
         };
+      } else {
+        query = { status: "accepted" };
       }
-      const totalData = await productCollection.estimatedDocumentCount();
+      const acceptedData = await productCollection.find(query).toArray();
+      const totalData = acceptedData.length;
       const page = Number(req.query.page) || 1;
       const limit = Number(req.query.limit) || 4;
       const skip = (page - 1) * limit;
       const totalPages = Math.ceil(totalData / limit);
-      if (search) {
-        const result = await productCollection
-          .find(query)
-          .skip(skip)
-          .limit(4)
-          .sort({ timestamp: -1 })
-          .toArray();
-        return res.send({ result, totalData, totalPages });
-      } else {
-        const result = await productCollection
-          .find(query)
-          .skip(skip)
-          .limit(limit)
-          .sort({ timestamp: -1 })
-          .toArray();
-        return res.send({ result, totalData, totalPages });
-      }
+      const result = await productCollection
+        .find(query)
+        .skip(skip)
+        .limit(limit)
+        .sort({ timestamp: -1 })
+        .toArray();
+      return res.send({ result, totalData, totalPages });
     });
 
     // get all products by moderator
