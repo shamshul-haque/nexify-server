@@ -226,6 +226,7 @@ async function run() {
         const updatedDoc = {
           $set: {
             vote_count: item.vote_count,
+            voter: item.voter,
           },
         };
         const result = await productCollection.updateOne(filter, updatedDoc);
@@ -305,33 +306,35 @@ async function run() {
     // get all products normally and based on tag search
     app.get("/api/v1/products", async (req, res) => {
       const { search } = req.query;
-      if (!search || "") {
-        // const page = Number(req.query.page);
-        // const limit = Number(req.query.limit);
-        // const skip = (page - 1) * limit;
-        // const result = await productCollection
-        //   .find()
-        //   .skip(skip)
-        //   .limit(limit)
-        //   .sort({ timestamp: -1 })
-        //   .toArray();
-        // const total = await productCollection.estimatedDocumentCount();
-        // return res.send({ result, total });
-        const result = await productCollection
-          .find()
-          .sort({ timestamp: -1 })
-          .toArray();
-        res.send(result);
-      } else {
-        const query = {
+      let query = {};
+      if (search) {
+        query = {
           tags: { $in: [new RegExp(search, "i")] },
         };
+      }
+      const totalData = await productCollection.estimatedDocumentCount();
+      const currentPage = Number(req.query.page) || 1;
+      const dataLimit = Number(req.query.limit) || 4;
+      const dataSkip = (currentPage - 1) * dataLimit;
+      const totalPages = Math.ceil(totalData / dataLimit);
+      const nextPage = currentPage < totalPages ? currentPage + 1 : currentPage;
+      const prevPage = currentPage > 1 ? currentPage - 1 : 1;
+      if (search) {
         const result = await productCollection
           .find(query)
+          .skip(dataSkip)
           .limit(4)
           .sort({ timestamp: -1 })
           .toArray();
-        return res.send(result);
+        return res.send({ result, totalData, totalPages, nextPage, prevPage });
+      } else {
+        const result = await productCollection
+          .find(query)
+          .skip(dataSkip)
+          .limit(dataLimit)
+          .sort({ timestamp: -1 })
+          .toArray();
+        return res.send({ result, totalData, totalPages, nextPage, prevPage });
       }
     });
 
@@ -373,8 +376,19 @@ async function run() {
     });
 
     // get all products based on vote count field
-    app.get("/api/v1/products/voted", async (req, res) => {
+    app.get("/api/v1/products/trending", async (req, res) => {
       const query = { vote_count: { $exists: true } };
+      const result = await productCollection
+        .find(query)
+        .sort({ vote_count: -1 })
+        .limit(6)
+        .toArray();
+      res.send(result);
+    });
+
+    // get all products which has more than 10 vote
+    app.get("/api/v1/products/rising", async (req, res) => {
+      const query = { vote_count: { $gt: 10 } }; // Updated query to find products with vote_count greater than 10
       const result = await productCollection
         .find(query)
         .sort({ vote_count: -1 })
